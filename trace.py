@@ -1,7 +1,8 @@
 import socket
+import argparse
 
 
-def trace(ip, hops):
+def trace(ip, hops, timeout):
     try:
         dest = socket.gethostbyname(ip)
     except socket.error:
@@ -14,30 +15,27 @@ def trace(ip, hops):
     try:
         while ttl < hops:
             ttl += 1
-            receiver = socket.socket(socket.AF_INET, socket.SOCK_RAW,
-                                     socket.IPPROTO_ICMP)
-            receiver.bind(('', port))
-            receiver.settimeout(2)
-            sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM,
-                                   socket.getprotobyname('udp'))
-            sender.setsockopt(socket.SOL_IP, socket.IP_TTL, ttl)
-            sender.sendto(b'1234', (dest, port))
-            answer_from = None
-            try:
-                _, answer_from = receiver.recvfrom(65536)
-            except socket.error:
-                pass
-            finally:
-                receiver.close()
-                sender.close()
-            if answer_from:
-                #  as_num = get_info(answer_from[0])
-                log('{:<3}{:<20}'.format(ttl, answer_from[0]))
-            else:
-                log('{}\t *****'.format(ttl))
-                continue
-            if answer_from[0] == dest:
-                break
+            with socket.socket(socket.AF_INET, socket.SOCK_RAW,
+                               socket.IPPROTO_ICMP) as receiver:
+                receiver.bind(('', port))
+                receiver.settimeout(timeout)
+                with socket.socket(socket.AF_INET, socket.SOCK_DGRAM,
+                                   socket.getprotobyname('udp')) as sender:
+                    sender.setsockopt(socket.SOL_IP, socket.IP_TTL, ttl)
+                    sender.sendto(b'1234', (dest, port))
+                    answer_from = None
+                    try:
+                        _, answer_from = receiver.recvfrom(65536)
+                    except socket.error:
+                        pass
+                    if answer_from:
+                        #  as_num = get_info(answer_from[0])
+                        log('{:<3}{:<20}'.format(ttl, answer_from[0]))
+                    else:
+                        log('{}\t *****'.format(ttl))
+                        continue
+                    if answer_from[0] == dest:
+                        break
     except Exception as e:
         print('Something went wrong: {}'.format(e))
 
@@ -46,6 +44,11 @@ def log(str):
     print(str)
 
 
-print('ip or domain:')
-ip = input()
-trace(ip, 30)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser("Tracer with detecting country, autonomous system and provider")
+    parser.add_argument('-t', '--timeout', help='Timeout for ping (ms)', default=1000, type=int)
+    parser.add_argument('-m', '--max-hops', help='Max count of hops', default=30, type=int)
+    args = parser.parse_args()
+    print('ip or domain:')
+    ip = input()
+    trace(ip, args.max_hops, args.timeout / 1000)
