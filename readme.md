@@ -1,4 +1,4 @@
-# Autonomous System Tracer (+country, provider)
+# Traceroute (+country, provider, autonomous system number)
 ## Usage:
 1. Linux(on Windows may be troubles with ttl):
     > You should use "sudo"
