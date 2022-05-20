@@ -1,13 +1,23 @@
-import socket
 import argparse
+import socket
+import json
+import requests
+
+
+def get_info(ip):
+    try:
+        info = json.loads(
+            requests.get("http://ipinfo.io/{0}/json".format(ip)).content)
+        return '{:<30}{:<5}'.format(info.get('org', ''), info.get('country', ''))
+    except Exception:
+        return "*****"
 
 
 def trace(ip, hops, timeout):
     try:
         dest = socket.gethostbyname(ip)
     except socket.error:
-        log("Can't resolve ip address for {}. Check internet connection".format(
-            ip))
+        log(f"Can't resolve ip address for {ip}. Check internet connection")
         return
     log('tracing: {}'.format(dest))
     ttl = 0
@@ -29,8 +39,8 @@ def trace(ip, hops, timeout):
                     except socket.error:
                         pass
                     if answer_from:
-                        #  as_num = get_info(answer_from[0])
-                        log('{:<3}{:<20}'.format(ttl, answer_from[0]))
+                        as_num = get_info(answer_from[0])
+                        log('{:<3}{:<20}{:<25}'.format(ttl, answer_from[0], as_num))
                     else:
                         log('{}\t *****'.format(ttl))
                         continue
