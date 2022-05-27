@@ -7,47 +7,54 @@ import requests
 def get_info(ip):
     try:
         info = json.loads(
-            requests.get("http://ipinfo.io/{0}/json".format(ip)).content)
+            requests.get("https://ipinfo.io/{0}/json".format(ip)).content)
         return '{:<30}{:<5}'.format(info.get('org', ''), info.get('country', ''))
     except Exception:
         return "*****"
 
 
-def trace(ip, hops, timeout):
-    try:
-        dest = socket.gethostbyname(ip)
-    except socket.error:
-        log(f"Can't resolve ip address for {ip}. Check internet connection")
-        return
-    log('tracing: {}'.format(dest))
-    ttl = 0
-    port = 33434
-    try:
-        while ttl < hops:
-            ttl += 1
-            with socket.socket(socket.AF_INET, socket.SOCK_RAW,
-                               socket.IPPROTO_ICMP) as receiver:
+class Tracer:
+    def __init__(self, max_hops: int, destination_ip: str, port: int, timeout_in_ms: int):
+        self._max_hops = max_hops
+        self._destination = destination_ip
+        self._port = port
+        self._timeout = timeout_in_ms / 1000
+
+    def start(self):
+        log('tracing: {}'.format(self._destination))
+        port = 33434
+        try:
+            with socket.socket(
+                    socket.AF_INET, socket.SOCK_RAW,
+                    socket.IPPROTO_ICMP
+            ) as receiver:
                 receiver.bind(('', port))
-                receiver.settimeout(timeout)
-                with socket.socket(socket.AF_INET, socket.SOCK_DGRAM,
-                                   socket.getprotobyname('udp')) as sender:
-                    sender.setsockopt(socket.SOL_IP, socket.IP_TTL, ttl)
-                    sender.sendto(b'1234', (dest, port))
-                    answer_from = None
-                    try:
-                        _, answer_from = receiver.recvfrom(65536)
-                    except socket.error:
-                        pass
-                    if answer_from:
-                        as_num = get_info(answer_from[0])
-                        log('{:<3}{:<20}{:<25}'.format(ttl, answer_from[0], as_num))
-                    else:
-                        log('{}\t *****'.format(ttl))
-                        continue
-                    if answer_from[0] == dest:
-                        break
-    except Exception as e:
-        print('Something went wrong: {}'.format(e))
+                receiver.settimeout(self._timeout)
+                self._start_sender(receiver)
+        except Exception as e:
+            print('Something went wrong: {}'.format(e))
+
+    def _start_sender(self, receiver: socket.socket):
+        with socket.socket(
+                socket.AF_INET, socket.SOCK_DGRAM,
+                socket.getprotobyname('udp')
+        ) as sender:
+            for ttl in range(1, self._max_hops + 1):
+                sender.setsockopt(socket.SOL_IP, socket.IP_TTL, ttl)
+                sender.sendto(b'1234', (self._destination, self._port))
+                answer_from = None
+                try:
+                    _, answer_from = receiver.recvfrom(65536)
+                except socket.error:
+                    pass
+                if answer_from:
+                    ip_info = get_info(answer_from[0])
+                    log('{:<3}{:<20}{:<25}'.format(ttl, answer_from[0], ip_info))
+                else:
+                    log('{}\t *****'.format(ttl))
+                    continue
+                if answer_from[0] == self._destination:
+                    break
 
 
 def log(str):
@@ -59,6 +66,12 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--timeout', help='Timeout for ping (ms)', default=1000, type=int)
     parser.add_argument('-m', '--max-hops', help='Max count of hops', default=30, type=int)
     args = parser.parse_args()
-    print('ip or domain:')
-    ip = input()
-    trace(ip, args.max_hops, args.timeout / 1000)
+    ip_or_domain = input('ip or domain: ')
+    try:
+        dest = socket.gethostbyname(ip_or_domain)
+    except socket.error:
+        log(f"Can't resolve ip address for {ip_or_domain}. Check internet connection")
+        exit()
+    tracer = Tracer(args.max_hops, dest, 33343, args.timeout)
+    # trace(ip_or_domain, args.max_hops, args.timeout / 1000)
+    tracer.start()
