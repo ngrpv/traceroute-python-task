@@ -4,13 +4,25 @@ import json
 import requests
 
 
-def get_info(ip):
+def get_info(ip) -> (str, str):
     try:
         info = json.loads(
             requests.get(f"https://ipinfo.io/{ip}/json").content)
-        return f'{info.get("org", ""):<30}{info.get("country", ""):<5}'
+        # return f'{info.get("org", ""):<30}{info.get("country", ""):<5}'
+        return info.get("org", ""), info.get("country", "")
     except Exception:
         return "*****"
+
+
+class TraceResult:
+    def __init__(self, ttl, ip="*****", country="", provider=""):
+        self.ttl = ttl
+        self.ip = ip
+        self.country = country
+        self.provider = provider
+
+    def __str__(self):
+        return f'{self.ttl:<3}{self.ip:<20}{self.provider:<30}{self.country:<5}'
 
 
 class Tracer:
@@ -21,7 +33,7 @@ class Tracer:
         self._timeout = timeout_in_ms / 1000
 
     def start(self):
-        log('tracing: {}'.format(self._destination))
+        # log('tracing: {}'.format(self._destination))
         port = 33434
         try:
             with socket.socket(
@@ -30,7 +42,7 @@ class Tracer:
             ) as receiver:
                 receiver.bind(('', port))
                 receiver.settimeout(self._timeout)
-                self._start_sender(receiver)
+                yield from self._start_sender(receiver)
         except Exception as e:
             print('Something went wrong: {}'.format(e))
 
@@ -49,16 +61,15 @@ class Tracer:
                     pass
                 if answer_from:
                     ip_info = get_info(answer_from[0])
-                    log('{:<3}{:<20}{:<25}'.format(ttl, answer_from[0], ip_info))
+                    yield TraceResult(ttl, answer_from[0], ip_info[1], ip_info[0])
+                #  log('{:<3}{:<20}{:<25}'.format(ttl, answer_from[0], ip_info))
                 else:
-                    log('{}\t *****'.format(ttl))
+                    yield TraceResult(ttl)
+                    #       log('{}\t *****'.format(ttl))
                     continue
                 if answer_from[0] == self._destination:
                     break
 
-
-def log(str):
-    print(str)
 
 
 if __name__ == '__main__':
@@ -70,8 +81,9 @@ if __name__ == '__main__':
     try:
         dest = socket.gethostbyname(ip_or_domain)
     except socket.error:
-        log(f"Can't resolve ip address for {ip_or_domain}. Check internet connection")
+        #    log(f"Can't resolve ip address for {ip_or_domain}. Check internet connection")
         exit()
     tracer = Tracer(args.max_hops, dest, 33343, args.timeout)
     # trace(ip_or_domain, args.max_hops, args.timeout / 1000)
-    tracer.start()
+    for i in tracer.start():
+        print(i)
