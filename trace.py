@@ -7,8 +7,8 @@ import requests
 def get_info(ip):
     try:
         info = json.loads(
-            requests.get("https://ipinfo.io/{0}/json".format(ip)).content)
-        return '{:<30}{:<5}'.format(info.get('org', ''), info.get('country', ''))
+            requests.get(f"https://ipinfo.io/{ip}/json").content)
+        return f'{info.get("org", ""):<30}{info.get("country", ""):<5}'
     except Exception:
         return "*****"
 
