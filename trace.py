@@ -1,6 +1,7 @@
 import argparse
-import socket
 import json
+import socket
+
 import requests
 
 
