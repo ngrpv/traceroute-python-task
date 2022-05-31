@@ -49,7 +49,7 @@ class Result:
 @app.route('/get-state/<int:id>')
 def get_state(id: int):
     while id not in trace_result or len(trace_result[id]) == 0:
-        pass
+        return json.dumps(Result([], False), default=lambda x: x.__dict__)
     result = Result(trace_result[id][:], is_finished[id])
     trace_result[id] = []
     return json.dumps(result, default=lambda x: x.__dict__)
