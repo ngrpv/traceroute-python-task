@@ -9,21 +9,36 @@
     <title>Tracer</title>
 </head>
 <body>
-<form action="/trace" method="get" class="form">
-    <label>
-        Ip or domain:
-        <input name="domain" class="domain_input" type="text" required>
-    </label>
-    <label>
-        Max TTL
-        <input name="max-ttl" class="domain_input" type="number" value="30">
-    </label>
-    <label>
-        Timeout(in ms)
-        <input name="timeout" class="domain_input" type="number" value="1000">
-    </label>
+<div id="new_job_view">
+    <form action="/trace" id="new_job_form" method="get" class="form">
+        <label>
+            IP or domain:
+            <input id="new_job_target" name="target" class="domain_input" type="text" required>
+        </label>
+        <label>
+            Max TTL:
+            <input id="new_job_max_ttl" name="max_ttl" class="domain_input" type="number" value="30">
+        </label>
+        <label>
+            Timeout (in ms):
+            <input id="new_job_timeout" name="timeout" class="domain_input" type="number" value="1000">
+        </label>
+        <input class="submit-btn" type="submit" value="Trace">
+    </form>
+</div>
 
-    <input class="submit-btn" type="submit" value="Trace">
-</form>
+<div id="job_status_view" style="display: none;">
+    <h1>
+        <p id="job_status_title">Title here</p>
+    </h1>
+    <button onclick="back_to_new_job()">Trace route to another host</button>
+    <br />
+    <table >
+        <tbody id="job_status_tbody">
+        </tbody>
+    </table>
+</div>
+
+<script type="text/javascript" src="/static/front_logic.js"></script>
 </body>
 </html>

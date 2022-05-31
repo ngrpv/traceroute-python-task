@@ -17,6 +17,7 @@ def index():
 
 is_finished = {}
 trace_result = {}
+call_arguments = {}
 
 
 def start_tracing(tracer: Tracer, id: int):
@@ -31,25 +32,26 @@ def start_tracing(tracer: Tracer, id: int):
 def search():
     args = request.args
     try:
-        dest = socket.gethostbyname(args['domain'])
+        dest = socket.gethostbyname(args['target'])
     except socket.error:
-        return f"Can't resolve ip address for \"{args['domain']}\". Check internet connection"
+        return f"Can't resolve ip address for \"{args['domain']}\". Check internet connection", 400
     id = random.randint(0, 1000000)
-    tracer = Tracer(int(args['max-ttl']), dest, 34434, int(args['timeout']))
+    call_arguments[id] = {"target": args['target'], "max_ttl": args['max_ttl'], "timeout": args['timeout']}
+    tracer = Tracer(int(args['max_ttl']), dest, 34434, int(args['timeout']))
     threading.Thread(target=start_tracing, args=[tracer, id]).start()
     return str(id)
 
 
-class Result:
-    def __init__(self, data, is_finished):
-        self.data = data
+class JobDetails:
+    def __init__(self, nodes, is_finished, call_arguments):
+        self.nodes = nodes
         self.is_finished = is_finished
+        self.call_arguments = call_arguments
 
 
 @app.route('/get-state/<int:id>')
 def get_state(id: int):
-    while id not in trace_result or len(trace_result[id]) == 0:
-        return json.dumps(Result([], False), default=lambda x: x.__dict__)
-    result = Result(trace_result[id][:], is_finished[id])
-    trace_result[id] = []
+    if id not in trace_result:
+        return "Not found", 404
+    result = JobDetails(trace_result[id], is_finished[id], call_arguments[id])
     return json.dumps(result, default=lambda x: x.__dict__)
