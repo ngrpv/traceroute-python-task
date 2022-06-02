@@ -34,7 +34,7 @@ def search():
     try:
         dest = socket.gethostbyname(args['target'])
     except socket.error:
-        return f"Can't resolve ip address for \"{args['domain']}\". Check internet connection", 400
+        return f"Can't resolve ip address for \"{args['target']}\". Check internet connection", 400
     id = random.randint(0, 1000000)
     call_arguments[id] = {"target": args['target'], "max_ttl": args['max_ttl'], "timeout": args['timeout']}
     tracer = Tracer(int(args['max_ttl']), dest, 34434, int(args['timeout']))

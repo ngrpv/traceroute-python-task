@@ -68,21 +68,3 @@ class Tracer:
                     continue
                 if answer_from[0] == self._destination:
                     break
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        "Tracer with detecting country, autonomous system and provider")
-    parser.add_argument('-t', '--timeout', help='Timeout for ping (ms)',
-                        default=1000, type=int)
-    parser.add_argument('-m', '--max-hops', help='Max count of hops',
-                        default=30, type=int)
-    args = parser.parse_args()
-    ip_or_domain = input('ip or domain: ')
-    try:
-        dest = socket.gethostbyname(ip_or_domain)
-    except socket.error:
-        exit()
-    tracer = Tracer(args.max_hops, dest, 33343, args.timeout)
-    for i in tracer.start():
-        print(i)
