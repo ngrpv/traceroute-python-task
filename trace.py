@@ -6,6 +6,7 @@ import requests
 
 
 def get_info(ip) -> (str, str):
+    '''По заданному ip выдает информацию(провайдера и страну)'''
     try:
         info = json.loads(
             requests.get(f"https://ipinfo.io/{ip}/json").content)
@@ -15,6 +16,8 @@ def get_info(ip) -> (str, str):
 
 
 class TraceResult:
+    '''Информация на определенном ttl(ip, страна, провайдер)'''
+
     def __init__(self, ttl, ip="*****", country="", provider=""):
         self.ttl = ttl
         self.ip = ip
@@ -26,6 +29,9 @@ class TraceResult:
 
 
 class Tracer:
+    '''По заданным данным трассирует путь, определяя страну, провайдера,
+    и номер автномной сисетмы для каждого ip, если это возможно '''
+
     def __init__(self, max_hops: int, destination_ip: str, port: int,
                  timeout_in_ms: int):
         self._max_hops = max_hops
@@ -34,6 +40,7 @@ class Tracer:
         self._timeout = timeout_in_ms / 1000
 
     def start(self):
+        '''Запускает трассировщик'''
         port = 33434
         try:
             with socket.socket(
@@ -70,19 +77,19 @@ class Tracer:
                     break
 
 
-# if __name__ == '__main__':
-#     parser = argparse.ArgumentParser(
-#         "Tracer with detecting country, autonomous system and provider")
-#     parser.add_argument('-t', '--timeout', help='Timeout for ping (ms)',
-#                         default=1000, type=int)
-#     parser.add_argument('-m', '--max-hops', help='Max count of hops',
-#                         default=30, type=int)
-#     args = parser.parse_args()
-#     ip_or_domain = input('ip or domain: ')
-#     try:
-#         dest = socket.gethostbyname(ip_or_domain)
-#     except socket.error:
-#         exit()
-#     tracer = Tracer(args.max_hops, dest, 33343, args.timeout)
-#     for i in tracer.start():
-#         print(i)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        "Tracer with detecting country, autonomous system and provider")
+    parser.add_argument('-t', '--timeout', help='Timeout for ping (ms)',
+                        default=1000, type=int)
+    parser.add_argument('-m', '--max-hops', help='Max count of hops',
+                        default=30, type=int)
+    args = parser.parse_args()
+    ip_or_domain = input('ip or domain: ')
+    try:
+        dest = socket.gethostbyname(ip_or_domain)
+    except socket.error:
+        exit()
+    tracer = Tracer(args.max_hops, dest, 33343, args.timeout)
+    for i in tracer.start():
+        print(i)
