@@ -1,4 +1,5 @@
 from app import app as server
+from time import sleep
 
 
 def test_index_returns_html():
@@ -18,7 +19,7 @@ def test_trace_returns_id():
 
 def test_trace_returns_bad_request_if_invalid_target():
     response = server.test_client().get('/trace',
-                                        query_string=dict(target='23314124',
+                                        query_string=dict(target='m.m',
                                                           max_ttl=30,
                                                           timeout=1000))
     assert response.status_code == 400
@@ -43,8 +44,8 @@ def test_get_state_returns_ip_info():
                         target='google.com',
                         max_ttl=30,
                         timeout=1000)).data
-    from time import sleep
-    sleep(5)
+    sleep(1)
     response = client.get(f'/get-state/{id.decode()}')
+
     assert response.status_code == 200
     print(response.data.decode())
